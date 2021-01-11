@@ -47,3 +47,56 @@ NPC <- FindClusters(NPC, resolution = 1)
 head(Idents(NPC), 5)
 NPC <- RunUMAP(NPC, dims = 1:25)
 DimPlot(NPC, reduction = "umap", pt.size = 1, label = TRUE, label.size = 6) + NoLegend()
+
+#Second-round UMAP of T cells
+T_cell <- subset(pbmc_remove_doublet, idents = "T cells")
+ElbowPlot(T_cell,ndims = 50)
+T_cell <- FindNeighbors(T_cell, dims = 1:25)
+T_cell <- FindClusters(T_cell, resolution = 1)
+head(Idents(T_cell), 5)
+T_cell <- RunUMAP(T_cell, dims = 1:25)
+DimPlot(T_cell, reduction = "umap", label = FALSE, pt.size = 1) +NoLegend()
+
+#Identify DEGs
+T_markers_TvsN <- FindMarkers(T_cell, ident.1 = "T_tumor", ident.2 = 'T_normal', test.use = "MAST", logfc.threshold = 0, max.cells.per.ident = 250)
+
+#Relative abundance
+a<- GetAssayData(object = T_cell, slot = 'scale.data')
+s <-sapply(strsplit(as.character(colnames(a)),"-"),function(x)x[[2]])
+g <- Idents(T_cell)
+table(g,s)
+
+#Identification of marker gene expression across clusters
+First_12_T_markers <- c('CCR7','LEF1','SELL','TCF7','IFNG','NKG7','GZMA','GZMK','KLRG1','LAG3','PDCD1', 'HAVCR2')
+DoHeatmap(T_cell_avg, features = First_12_T_markers, size = 3, draw.lines = FALSE)+ scale_fill_gradientn(colors = c("dodgerblue2",'cornflowerblue', "aliceblue", "darkorange", 'firebrick3'))
+
+#Find correlated genes
+gene_data <- GetAssayData(object = subset(T_cell, idents = c('1','10')), slot = 'scale.data')
+gene_specific <- gene_data['GZMA',]
+result <- NULL
+for(i in 1:nrow(gene_data)){
+  
+  result <-c(result,cor.test(gene_specific, gene_data[i,],method="spearman")$estimate)
+  cat(i,'out of',nrow(gene_data),'\n')
+  
+}
+result<-data.frame (genes = rownames(gene_data),cor=result)
+
+#Calculate the parameters for naive score
+a <- c('CCR7',	'TCF7',	'LEF1',	'ACTN1','S1PR1',	'MAL',	'IL7R',	'PLAC8',	'SPINT2'	,'BACH2')
+gene_specific <- gene_data[a,]
+as.character(Idents(T_cell))
+y<-rep(0,ncol(gene_specific))
+y[as.character(Idents(T_cell))=="CD4+_Naive"|as.character(Idents(T_cell))=="CD8+_Naive"]<-1
+cbind(y,as.character(Idents(T_cell)))
+y <- as.numeric(y)
+b <-glm(y~gene_specific[1,]+gene_specific[2,]+gene_specific[3,]+gene_specific[4,]+
+          gene_specific[5,]+gene_specific[6,]+gene_specific[7,]+gene_specific[8,]+
+          gene_specific[9,]+gene_specific[10,], family = "binomial")
+summary(b)
+
+
+  
+ 
+
+
