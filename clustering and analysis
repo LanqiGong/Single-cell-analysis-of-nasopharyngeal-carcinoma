@@ -1,0 +1,49 @@
+library(dplyr)
+library(Seurat)
+library(ggplot2)
+library(stringr)
+library(ggrepel)
+library(EnhancedVolcano)
+library(GOplot)
+
+#Load raw matrix data
+NPC.data <- Read10X(data.dir = "D:/Prof. Guan's Lab/Lanqi/NPC single-cell/NPC_all_mixed")
+NPC <- CreateSeuratObject(counts = NPC.data, project = "NPC", min.cells = 3, min.features = 200)
+
+#Plot matrix parameters
+NPC[["percent.mt"]] <- PercentageFeatureSet(NPC, pattern = "^MT-")
+VlnPlot(NPC, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+plot1 <- FeatureScatter(NPC, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(NPC, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+CombinePlots(plots = list(plot1, plot2))
+
+#Acquire a subset of the raw data
+NPC <- subset(NPC, subset = nFeature_RNA > 200 & nFeature_RNA < 4000 & percent.mt < 15)
+
+#Data normalization
+NPC <- NormalizeData(NPC, normalization.method = "LogNormalize", scale.factor = 10000)
+NPC <- FindVariableFeatures(NPC, selection.method = "vst", nfeatures = 3000)
+
+# Identify the 15 most highly variable genes
+top15 <- head(VariableFeatures(NPC), 15)
+
+# plot variable features with and without labels
+plot1 <- VariableFeaturePlot(NPC)
+plot2 <- LabelPoints(plot = plot1, points = top15, repel = TRUE)
+CombinePlots(plots = list(plot1, plot2))
+
+#Scale data (for large data, may not need to scale all genes) and perform PCA
+NPC <- ScaleData(NPC)
+NPC <- RunPCA(NPC, features = VariableFeatures(object = NPC))
+print(NPC[["pca"]], dims = 1:5, nfeatures = 5)
+VizDimLoadings(NPC, dims = 1:2, reduction = "pca")
+DimPlot(NPC, reduction = "pca")
+DimHeatmap(NPC, dims = 1, cells = 500, balanced = TRUE)
+ElbowPlot(NPC,ndims = 50)
+
+#Perform umap reduction
+NPC <- FindNeighbors(NPC, dims = 1:25)
+NPC <- FindClusters(NPC, resolution = 1)
+head(Idents(NPC), 5)
+NPC <- RunUMAP(NPC, dims = 1:25)
+DimPlot(NPC, reduction = "umap", pt.size = 1, label = TRUE, label.size = 6) + NoLegend()
