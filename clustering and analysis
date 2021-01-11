@@ -49,7 +49,7 @@ NPC <- RunUMAP(NPC, dims = 1:25)
 DimPlot(NPC, reduction = "umap", pt.size = 1, label = TRUE, label.size = 6) + NoLegend()
 
 #Second-round UMAP of T cells
-T_cell <- subset(pbmc_remove_doublet, idents = "T cells")
+T_cell <- subset(NPC, idents = "T cells")
 ElbowPlot(T_cell,ndims = 50)
 T_cell <- FindNeighbors(T_cell, dims = 1:25)
 T_cell <- FindClusters(T_cell, resolution = 1)
@@ -59,6 +59,17 @@ DimPlot(T_cell, reduction = "umap", label = FALSE, pt.size = 1) +NoLegend()
 
 #Identify DEGs
 T_markers_TvsN <- FindMarkers(T_cell, ident.1 = "T_tumor", ident.2 = 'T_normal', test.use = "MAST", logfc.threshold = 0, max.cells.per.ident = 250)
+
+#Volcano plot
+EnhancedVolcano(T_markers_TvsN,
+                lab = rownames(T_markers_TvsN),
+                x = 'avg_logFC',
+                y = 'adj_p_val',
+                xlim = c(-1.5, 1.5),
+                ylim = c(0, 70),
+                pCutoff = 5e-2,
+                FCcutoff = 0.5,
+                legendPosition = 'Right')
 
 #Relative abundance
 a<- GetAssayData(object = T_cell, slot = 'scale.data')
@@ -95,6 +106,32 @@ b <-glm(y~gene_specific[1,]+gene_specific[2,]+gene_specific[3,]+gene_specific[4,
           gene_specific[9,]+gene_specific[10,], family = "binomial")
 summary(b)
 
+#Extract B cell clusters and re-cluster using UMAP
+B_cell=subset(NPC, idents = ("B cells"))
+B_cell <- FindNeighbors(B_cell, dims = 1:20)
+B_cell <- FindClusters(B_cell, resolution = 1)
+head(Idents(B_cell), 5)
+B_cell <- RunUMAP(B_cell, dims = 1:20)
+DimPlot(B_cell, reduction = "umap", pt.size = 1, label = TRUE, label.size = 6) + NoLegend()
+
+#Violin plots for selected genes
+VlnPlot(B_cell, features = c('NR4A1'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('EBI3'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('CD19'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('CD27'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('IGHM'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('IGHD'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('MEF2B'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('FCRL4'), pt.size = 0) + NoLegend()
+VlnPlot(B_cell, features = c('MKI67'), pt.size = 0) + NoLegend()
+
+#Calculate the normolized mean expression of genes in each cluster
+orig.levels <- levels(B_cell)
+Idents(B_cell) <- gsub(pattern = " ", replacement = "_", x = Idents(B_cell_remove_doublet))
+orig.levels <- gsub(pattern = " ", replacement = "_", x = orig.levels)
+levels(B_cell) <- orig.levels
+B_cell_avg <- AverageExpression(B_cell, return.seurat = TRUE)
+VlnPlot(B_cell, features = c('IFIT3'), pt.size = 0) + NoLegend()
 
   
  
