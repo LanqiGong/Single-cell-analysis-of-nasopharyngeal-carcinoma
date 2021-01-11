@@ -5,6 +5,7 @@ library(stringr)
 library(ggrepel)
 library(EnhancedVolcano)
 library(GOplot)
+library(DoubletFinder)
 
 #Load raw matrix data
 NPC.data <- Read10X(data.dir = "D:/Prof. Guan's Lab/Lanqi/NPC single-cell/NPC_all_mixed")
@@ -132,6 +133,18 @@ orig.levels <- gsub(pattern = " ", replacement = "_", x = orig.levels)
 levels(B_cell) <- orig.levels
 B_cell_avg <- AverageExpression(B_cell, return.seurat = TRUE)
 VlnPlot(B_cell, features = c('IFIT3'), pt.size = 0) + NoLegend()
+
+#Extract myeloid cell clusters and re-cluster using UMAP
+myeloid <- subset(NPC, idents = c('Myeloids'))
+ElbowPlot(myeloid,ndims = 50)
+myeloid <- FindNeighbors(myeloid, dims = 1:22)
+myeloid <- FindClusters(myeloid, resolution = 1)
+head(Idents(myeloid), 5)
+myeloid <- RunUMAP(myeloid, dims = 1:25)
+DimPlot(myeloid, reduction = "umap", pt.size = 1, label = TRUE, label.size = 6) + NoLegend()
+
+DotPlot(myeloid, features = c('CXCL10','CD1E', 'LAMP3', 'LGALS2','CD163', 'MS4A4A','LGMN','CD14','FCGR3A',
+                              'S100A8','S100A9','TGFB1', 'VEGFA','IDO1','IL10'), dot.scale = 10, dot.min = 0.1) + RotatedAxis()
 
   
  
