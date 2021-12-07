@@ -79,8 +79,8 @@ g <- Idents(T_cell)
 table(g,s)
 
 #Identification of marker gene expression across clusters
-First_12_T_markers <- c('CCR7','LEF1','SELL','TCF7','IFNG','NKG7','GZMA','GZMK','KLRG1','LAG3','PDCD1', 'HAVCR2')
-DoHeatmap(T_cell_avg, features = First_12_T_markers, size = 3, draw.lines = FALSE)+ scale_fill_gradientn(colors = c("dodgerblue2",'cornflowerblue', "aliceblue", "darkorange", 'firebrick3'))
+T_markers <- c('CCR7','LEF1','SELL','TCF7','IFNG','NKG7','GZMA','GZMK','KLRG1','LAG3','PDCD1','HAVCR2')
+DoHeatmap(T_cell_avg, features = T_markers, size = 3, draw.lines = FALSE)+ scale_fill_gradientn(colors = c("dodgerblue2",'cornflowerblue', "aliceblue", "darkorange", 'firebrick3'))
 
 #Find correlated genes
 gene_data <- GetAssayData(object = subset(T_cell, idents = c('1','10')), slot = 'scale.data')
